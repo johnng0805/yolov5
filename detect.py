@@ -94,6 +94,16 @@ def run(
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
+    # Load Alpr
+    alpr = Alpr("us", "/usr/share/openalpr/runtime_data/config/us.conf",
+                "/usr/share/openalpr/runtime_data")
+    if not alpr.is_loaded():
+        print("Error loading OpenALPR")
+    else:
+        print("Using OpenALPR " + alpr.get_version())
+        alpr.set_top_n(1)
+        alpr.set_detect_region(False)
+
     # Dataloader
     if webcam:
         view_img = check_imshow()
@@ -174,8 +184,11 @@ def run(
                     if c == 0:
                         label = None
                         imCrop = crop(xyxy, imc)
-                        cv2.imshow("cropped", imCrop)
-                        cv2.waitKey(1)
+                        plate_num = alpr.recognize_ndarray(imCrop)
+
+                        if (plate_num['results'] != []):
+                            plate = plate_num['results'][0]['plate']
+                            print(plate)
 
             # Stream results
             im0 = annotator.result()
@@ -203,7 +216,7 @@ def run(
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
-        LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
+        # LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
