@@ -24,6 +24,7 @@ Usage - formats:
                                          yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
 """
 
+import requests
 from utils.openalpr import Alpr
 from utils.torch_utils import select_device, time_sync
 from utils.plots import Annotator, colors, save_one_box
@@ -39,6 +40,9 @@ from pathlib import Path
 
 import torch
 import torch.backends.cudnn as cudnn
+
+from dotenv import load_dotenv
+load_dotenv()
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -103,6 +107,13 @@ def run(
         print("Using OpenALPR " + alpr.get_version())
         alpr.set_top_n(1)
         alpr.set_detect_region(False)
+
+    # Declare API Endpoint
+    API_ENDPOINT = os.environ['API_ENDPOINT']
+    print('Application Backend: ' + API_ENDPOINT)
+
+    # Previous plate value
+    prev_plate = ''
 
     # Dataloader
     if webcam:
@@ -182,13 +193,25 @@ def run(
                     #     save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                     c = int(cls)
                     if c == 0:
-                        label = None
                         imCrop = crop(xyxy, imc)
                         plate_num = alpr.recognize_ndarray(imCrop)
 
                         if (plate_num['results'] != []):
                             plate = plate_num['results'][0]['plate']
-                            print(plate)
+
+                            if plate and plate != prev_plate:
+                                data = {'plate_num': plate}
+
+                                try:
+                                    r = requests.post(API_ENDPOINT, json=data, timeout=1.5)
+                                    prev_plate = plate
+                                    print(r.text)
+                                except requests.Timeout:
+                                    print('Connection timeout')
+                                    pass
+                                except requests.ConnectionError:
+                                    print('Connection error')
+                                    pass
 
             # Stream results
             im0 = annotator.result()

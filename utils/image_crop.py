@@ -19,6 +19,8 @@ def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False):
 
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
 
+    # crop = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
     gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
 
     medBlur = cv2.medianBlur(gray, 3)
