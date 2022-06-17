@@ -25,6 +25,6 @@ def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False):
 
     medBlur = cv2.medianBlur(gray, 3)
 
-    gaussBlur = cv2.GaussianBlur(medBlur, (5, 5), 0)
+    gaussBlur = cv2.GaussianBlur(gray, (3, 3), 0)
 
     return gaussBlur

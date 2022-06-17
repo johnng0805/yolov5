@@ -59,7 +59,7 @@ def run(
         imgsz=(640, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
-        max_det=1000,  # maximum detections per image
+        max_det=10,  # maximum detections per image
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         view_img=False,  # show results
         save_txt=False,  # save results to *.txt
@@ -99,8 +99,7 @@ def run(
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
     # Load Alpr
-    alpr = Alpr("us", "/usr/share/openalpr/runtime_data/config/us.conf",
-                "/usr/share/openalpr/runtime_data")
+    alpr = Alpr(os.environ['COUNTRY_CODE'], os.environ['ALPR_CONFIG'], os.environ['ALPR_RUNTIME'])
     if not alpr.is_loaded():
         print("Error loading OpenALPR")
     else:
@@ -185,10 +184,10 @@ def run(
                     #     with open(f'{txt_path}.txt', 'a') as f:
                     #         f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                    # if save_img or save_crop or view_img:  # Add bbox to image
-                    #     c = int(cls)  # integer class
-                    #     label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                    #     annotator.box_label(xyxy, label, color=colors(c, True))
+                    if save_img or save_crop or view_img:  # Add bbox to image
+                        c = int(cls)  # integer class
+                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                        annotator.box_label(xyxy, label, color=colors(c, True))
                     # if save_crop:
                     #     save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                     c = int(cls)
@@ -197,10 +196,15 @@ def run(
                         plate_num = alpr.recognize_ndarray(imCrop)
 
                         if (plate_num['results'] != []):
-                            plate = plate_num['results'][0]['plate']
+                            plate = plate_num['results'][0]['plate'].replace("\n", "")
+                            data = None
 
                             if plate and plate != prev_plate:
-                                data = {'plate_num': plate}
+                                if len(plate) >= 8:
+                                    data = {'plate_num': plate}
+                                    print(plate)
+                                else:
+                                    pass
 
                                 try:
                                     r = requests.post(API_ENDPOINT, json=data, timeout=1.5)
