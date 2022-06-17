@@ -5,7 +5,7 @@ import numpy as np
 from utils.general import (xywh2xyxy, xyxy2xywh)
 
 
-def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False):
+def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False, thresh=None):
     xyxy = torch.tensor(xyxy).view(-1, 4)
 
     b = xyxy2xywh(xyxy)
@@ -21,10 +21,14 @@ def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False):
 
     # crop = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
-    gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
+    if crop.size != 0:
+        gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
 
-    medBlur = cv2.medianBlur(gray, 3)
+    #if thresh is not None:
+    #    gray = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)[1]
 
-    gaussBlur = cv2.GaussianBlur(gray, (3, 3), 0)
+    #medBlur = cv2.medianBlur(gray, 3)
 
-    return gaussBlur
+        gaussBlur = cv2.GaussianBlur(gray, (3, 3), 0)
+
+        return gray

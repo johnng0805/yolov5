@@ -40,6 +40,7 @@ from pathlib import Path
 
 import torch
 import torch.backends.cudnn as cudnn
+import numpy as np
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -192,30 +193,31 @@ def run(
                     #     save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                     c = int(cls)
                     if c == 0:
-                        imCrop = crop(xyxy, imc)
-                        plate_num = alpr.recognize_ndarray(imCrop)
+                        try:
+                            imCrop = crop(xyxy, imc)
+                            plate_num = alpr.recognize_ndarray(imCrop)
 
-                        if (plate_num['results'] != []):
-                            plate = plate_num['results'][0]['plate'].replace("\n", "")
-                            data = None
+                            if (plate_num['results'] != []):
+                                plate = plate_num['results'][0]['plate'].replace("\n", "").lstrip("I").rstrip("I")
+                                data = None
 
-                            if plate and plate != prev_plate:
-                                if len(plate) >= 8:
-                                    data = {'plate_num': plate}
-                                    print(plate)
-                                else:
-                                    pass
+                                if plate and plate != prev_plate:
+                                    if len(plate) == 8:
+                                        data = {'plate_num': plate}
+                                        print(plate)
 
-                                try:
+                                if data is not None:
                                     r = requests.post(API_ENDPOINT, json=data, timeout=1.5)
                                     prev_plate = plate
                                     print(r.text)
-                                except requests.Timeout:
-                                    print('Connection timeout')
-                                    pass
-                                except requests.ConnectionError:
-                                    print('Connection error')
-                                    pass
+                        except AttributeError:
+                            pass
+                        except requests.Timeout:
+                            print('Connection timeout')
+                            prev_plate = ''
+                        except requests.ConnectionError:
+                            print('Connection error')
+                            prev_plate = ''
 
             # Stream results
             im0 = annotator.result()
