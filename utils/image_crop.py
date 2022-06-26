@@ -31,4 +31,4 @@ def crop(xyxy, im, square=False, gain=1.02, pad=10, BGR=False, thresh=None):
 
         gaussBlur = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        return gray
+        return gaussBlur

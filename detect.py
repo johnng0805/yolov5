@@ -30,7 +30,7 @@ from utils.torch_utils import select_device, time_sync
 from utils.plots import Annotator, colors, save_one_box
 from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
-from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
+from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams, LoadWebcam
 from models.common import DetectMultiBackend
 from utils.image_crop import crop
 import argparse
@@ -105,6 +105,7 @@ def run(
         print("Error loading OpenALPR")
     else:
         print("Using OpenALPR " + alpr.get_version())
+        print("Country code: " + os.environ['COUNTRY_CODE'])
         alpr.set_top_n(1)
         alpr.set_detect_region(False)
 
@@ -117,7 +118,7 @@ def run(
 
     # Dataloader
     if webcam:
-        view_img = check_imshow()
+        #view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt)
         bs = len(dataset)  # batch_size
@@ -157,6 +158,7 @@ def run(
             seen += 1
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
+                #im0 = cv2.resize(im0, (720, 480))
                 s += f'{i}: '
             else:
                 p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
@@ -202,12 +204,12 @@ def run(
                                 data = None
 
                                 if plate and plate != prev_plate:
-                                    if len(plate) == 8:
-                                        data = {'plate_num': plate}
+                                    if len(plate) >= 8:
+                                        data = {'license_plate_using': plate}
                                         print(plate)
 
                                 if data is not None:
-                                    r = requests.post(API_ENDPOINT, json=data, timeout=1.5)
+                                    r = requests.put(API_ENDPOINT, data=data, timeout=1.5, verify=True)
                                     prev_plate = plate
                                     print(r.text)
                         except AttributeError:
